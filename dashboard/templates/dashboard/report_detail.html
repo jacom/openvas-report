@@ -1,0 +1,394 @@
+{% extends "dashboard/base.html" %}
+{% load thai_date %}
+{% block title %}{{ report.name }} - Dashboard{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard-index' %}">Reports</a></li>
+        <li class="breadcrumb-item active">{{ report.name|truncatechars:40 }}</li>
+    </ol>
+</nav>
+
+<h2>{{ report.name }}</h2>
+<p class="text-muted">
+    Scan Date: {{ report.scan_date|thaidate:"j M Y H:i"|default:"N/A" }} |
+    Hosts: {{ report.host_count }} |
+    Total Findings: {{ report.total_vulns }}
+</p>
+
+<!-- Severity Summary Cards -->
+<div class="row mb-4">
+    <div class="col">
+        <div class="card text-white bg-danger shadow-sm">
+            <div class="card-body text-center">
+                <h3>{{ report.critical_count }}</h3>
+                <small>Critical</small>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-white severity-high shadow-sm">
+            <div class="card-body text-center">
+                <h3>{{ report.high_count }}</h3>
+                <small>High</small>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-dark bg-warning shadow-sm">
+            <div class="card-body text-center">
+                <h3>{{ report.medium_count }}</h3>
+                <small>Medium</small>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-dark bg-info shadow-sm">
+            <div class="card-body text-center">
+                <h3>{{ report.low_count }}</h3>
+                <small>Low</small>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-white bg-secondary shadow-sm">
+            <div class="card-body text-center">
+                <h3>{{ report.info_count }}</h3>
+                <small>Info</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mb-4">
+    <div class="col-md-5">
+        <div class="card shadow-sm">
+            <div class="card-header">Severity Distribution</div>
+            <div class="card-body">
+                <canvas id="severityPieChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-7">
+        <div class="card shadow-sm">
+            <div class="card-header">Top Critical/High Vulnerabilities</div>
+            <div class="card-body">
+                <canvas id="topVulnsChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Buttons -->
+<div class="mb-3">
+    <a href="{% url 'report-pdf' report.id %}" class="btn btn-danger"><i class="bi bi-file-pdf"></i> Export PDF</a>
+    <a href="{% url 'report-excel' report.id %}" class="btn btn-success"><i class="bi bi-file-earmark-excel"></i> Export Excel</a>
+    <a href="{% url 'report-csv' report.id %}" class="btn btn-secondary"><i class="bi bi-filetype-csv"></i> Export CSV</a>
+    <a href="{% url 'dashboard-delete' report.id %}" class="btn btn-outline-danger float-end"><i class="bi bi-trash"></i> ลบรายงาน</a>
+</div>
+
+<!-- Filter & Search -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-auto">
+                <select name="severity" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Severities</option>
+                    <option value="Critical" {% if severity_filter == "Critical" %}selected{% endif %}>Critical</option>
+                    <option value="High" {% if severity_filter == "High" %}selected{% endif %}>High</option>
+                    <option value="Medium" {% if severity_filter == "Medium" %}selected{% endif %}>Medium</option>
+                    <option value="Low" {% if severity_filter == "Low" %}selected{% endif %}>Low</option>
+                    <option value="Info" {% if severity_filter == "Info" %}selected{% endif %}>Info</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <input type="text" name="q" value="{{ search_query }}" class="form-control form-control-sm" placeholder="Search vulns or CVE...">
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-sm btn-primary">Filter</button>
+                <a href="{% url 'dashboard-report' report.id %}" class="btn btn-sm btn-outline-secondary">Clear</a>
+            </div>
+        </form>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Severity</th>
+                        <th>CVSS</th>
+                        <th>Vulnerability</th>
+                        <th>Family</th>
+                        <th>CVEs</th>
+                        <th>Hosts</th>
+                        <th>AI</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for vuln in vulnerabilities %}
+                    <!-- Main vulnerability row -->
+                    <tr>
+                        <td><span class="badge severity-badge-{{ vuln.severity|lower }}">{{ vuln.severity }}</span></td>
+                        <td>{{ vuln.cvss_score }}</td>
+                        <td>
+                            <strong>{{ vuln.name|truncatechars:80 }}</strong>
+                            {% if vuln.description %}
+                            <br><small class="text-muted">{{ vuln.description|truncatechars:120 }}</small>
+                            {% endif %}
+                        </td>
+                        <td><small>{{ vuln.family }}</small></td>
+                        <td>
+                            {% for cve in vuln.cve_list %}
+                            <a href="https://nvd.nist.gov/vuln/detail/{{ cve }}"
+                               target="_blank" rel="noopener noreferrer"
+                               class="badge bg-light text-dark text-decoration-none me-1"
+                               title="ดูข้อมูล {{ cve }} ที่ NVD">{{ cve }}</a>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% for host in vuln.affected_hosts.all %}
+                            <a href="{% url 'dashboard-host' report.id host.ip %}" class="badge bg-light text-dark text-decoration-none">
+                                {{ host.ip }}:{{ host.port }}
+                            </a>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            <button class="btn btn-sm {% if vuln.ai_analysis %}btn-warning{% else %}btn-outline-warning{% endif %} ai-toggle-btn"
+                                data-vuln-id="{{ vuln.id }}"
+                                data-cves="{{ vuln.cve_list|join:',' }}"
+                                data-vuln-name="{{ vuln.name }}"
+                                title="{% if vuln.ai_analysis %}ดูผลวิเคราะห์ AI{% else %}วิเคราะห์ด้วย ChatGPT{% endif %}">
+                                <i class="bi bi-robot"></i>
+                                {% if vuln.ai_analysis %}<i class="bi bi-check-circle-fill ms-1" style="font-size:0.7em;"></i>{% endif %}
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- AI Analysis inline row -->
+                    {% if vuln.ai_analysis %}
+                    <tr class="ai-analysis-row" id="ai-row-{{ vuln.id }}">
+                        <td colspan="7" class="p-0">
+                            <div class="ai-row-box">
+                                <div class="ai-row-header">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="bi bi-robot text-warning"></i>
+                                        <strong class="text-warning">AI Analysis</strong>
+                                        <small class="text-muted">{{ vuln.ai_analysis.updated_at|date:"d/m/Y H:i" }}</small>
+                                        <span class="badge bg-success"><i class="bi bi-database-check"></i> บันทึกแล้ว</span>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-warning reanalyze-btn"
+                                        data-vuln-id="{{ vuln.id }}"
+                                        data-cves="{{ vuln.cve_list|join:',' }}"
+                                        data-vuln-name="{{ vuln.name }}">
+                                        <i class="bi bi-arrow-clockwise"></i> วิเคราะห์ใหม่
+                                    </button>
+                                </div>
+                                <div class="ai-row-answer">{{ vuln.ai_analysis.answer }}</div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    {% if vuln.thai %}
+                    <tr class="thai-advisory-row">
+                        <td colspan="7" class="p-0">
+                            <div class="thai-advisory {% if vuln.severity == 'Critical' %}advisory-critical{% else %}advisory-high{% endif %}">
+                                <div class="advisory-header">
+                                    <strong>{{ vuln.thai.title }}</strong>
+                                    <span class="badge {% if vuln.severity == 'Critical' %}bg-danger{% else %}bg-warning text-dark{% endif %} ms-2">{{ vuln.thai.urgency }}</span>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-md-6">
+                                        <p class="advisory-label">คำอธิบาย:</p>
+                                        <p class="advisory-text">{{ vuln.thai.description }}</p>
+                                        <p class="advisory-label">ผลกระทบ:</p>
+                                        <p class="advisory-text">{{ vuln.thai.impact }}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p class="advisory-label">คำแนะนำในการแก้ไข:</p>
+                                        <pre class="advisory-remediation">{{ vuln.thai.remediation }}</pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% empty %}
+                    <tr><td colspan="7" class="text-center text-muted">No vulnerabilities found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+.ai-row-box {
+    border-left: 4px solid #ffc107;
+    background: #0f1e2e;
+    padding: 14px 18px;
+    font-family: "Sarabun", sans-serif;
+}
+.ai-row-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.ai-row-query {
+    font-size: 0.85em;
+    color: #7dd3fc;
+    margin-bottom: 10px;
+    font-style: italic;
+}
+.ai-row-answer {
+    font-size: 0.9em;
+    color: #e2e8f0;
+    white-space: pre-wrap;
+    line-height: 1.75;
+}
+.ai-loading-row td {
+    background: #0f1e2e;
+    border-left: 4px solid #ffc107;
+    padding: 16px 18px;
+    color: #e2e8f0;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Charts
+    fetch('/api/v1/stats/{{ report.id }}/')
+        .then(r => r.json())
+        .then(data => {
+            renderSeverityPie('severityPieChart', data.severity_distribution);
+            renderTopVulnsBar('topVulnsChart', data.top_vulnerabilities);
+        });
+
+    function getCsrf() {
+        var m = document.cookie.split(';').map(function(c){ return c.trim(); })
+                    .find(function(c){ return c.startsWith('csrftoken='); });
+        return m ? decodeURIComponent(m.split('=')[1]) : '';
+    }
+
+    function callChatGPT(vulnId, cves, vulnName, targetRow, btn) {
+        // Show loading state in row
+        targetRow.style.display = '';
+        targetRow.querySelector('td').innerHTML =
+            '<div class="d-flex align-items-center gap-2 p-3" style="border-left:4px solid #ffc107;background:#0f1e2e;">'
+          + '<div class="spinner-border spinner-border-sm text-warning" role="status"></div>'
+          + '<span style="color:#e2e8f0;">กำลังวิเคราะห์ด้วย ChatGPT...</span>'
+          + '</div>';
+
+        fetch('/api/v1/chatgpt/explain/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
+            body: JSON.stringify({ cves: cves, vuln_name: vulnName, vulnerability_id: vulnId })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            console.log('[AI] API response:', JSON.stringify(data));
+            if (data.error) {
+                targetRow.querySelector('td').innerHTML =
+                    '<div class="alert alert-danger m-2">'
+                  + '<i class="bi bi-exclamation-triangle"></i> ' + escHtml(data.error)
+                  + '</div>';
+            } else {
+                var now = new Date();
+                var ts  = now.toLocaleDateString('th-TH') + ' ' + now.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'});
+                targetRow.querySelector('td').innerHTML = buildAiBox(vulnId, cves, vulnName, ts, data.query, data.answer);
+                bindReanalyze(targetRow);
+                // update button style
+                if (btn) {
+                    btn.classList.remove('btn-outline-warning');
+                    btn.classList.add('btn-warning');
+                    btn.querySelector('i.bi-robot').insertAdjacentHTML('afterend',
+                        '<i class="bi bi-check-circle-fill ms-1" style="font-size:0.7em;"></i>');
+                }
+            }
+        })
+        .catch(function(err) {
+            targetRow.querySelector('td').innerHTML =
+                '<div class="alert alert-danger m-2">'
+              + '<i class="bi bi-exclamation-triangle"></i> Error: ' + escHtml(err.message)
+              + '</div>';
+        });
+    }
+
+    function buildAiBox(vulnId, cves, vulnName, ts, query, answer) {
+        return '<div class="ai-row-box">'
+             + '<div class="ai-row-header">'
+             + '  <div class="d-flex align-items-center gap-2">'
+             + '    <i class="bi bi-robot text-warning"></i>'
+             + '    <strong class="text-warning">AI Analysis</strong>'
+             + '    <small class="text-muted">' + escHtml(ts) + '</small>'
+             + '    <span class="badge bg-success"><i class="bi bi-database-check"></i> บันทึกแล้ว</span>'
+             + '  </div>'
+             + '  <button class="btn btn-sm btn-outline-warning reanalyze-btn"'
+             + '    data-vuln-id="' + escHtml(vulnId) + '"'
+             + '    data-cves="' + escHtml(cves.join ? cves.join(',') : cves) + '"'
+             + '    data-vuln-name="' + escHtml(vulnName) + '">'
+             + '    <i class="bi bi-arrow-clockwise"></i> วิเคราะห์ใหม่'
+             + '  </button>'
+             + '</div>'
+             + '<div class="ai-row-answer">' + escHtml(answer) + '</div>'
+             + '</div>';
+    }
+
+    function bindReanalyze(row) {
+        var btn = row.querySelector('.reanalyze-btn');
+        if (!btn) return;
+        btn.addEventListener('click', function() {
+            var id   = this.getAttribute('data-vuln-id');
+            var cves = (this.getAttribute('data-cves') || '').split(',').filter(Boolean);
+            var name = this.getAttribute('data-vuln-name') || '';
+            callChatGPT(id, cves, name, row, null);
+        });
+    }
+
+    // Toggle button: show/hide existing ai-row, or call API if not yet analyzed
+    document.querySelectorAll('.ai-toggle-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var vulnId   = this.getAttribute('data-vuln-id');
+            var cvesRaw  = this.getAttribute('data-cves') || '';
+            var vulnName = this.getAttribute('data-vuln-name') || '';
+            var cves     = cvesRaw.split(',').map(function(c){ return c.trim(); }).filter(Boolean);
+            var aiRow    = document.getElementById('ai-row-' + vulnId);
+
+            if (aiRow) {
+                // toggle visibility
+                aiRow.style.display = (aiRow.style.display === 'none') ? '' : 'none';
+            } else {
+                // Create new row and insert after this button's <tr>
+                var mainRow = this.closest('tr');
+                var newRow  = document.createElement('tr');
+                newRow.id   = 'ai-row-' + vulnId;
+                newRow.className = 'ai-analysis-row';
+                newRow.innerHTML = '<td colspan="7"></td>';
+                mainRow.parentNode.insertBefore(newRow, mainRow.nextSibling);
+                callChatGPT(vulnId, cves, vulnName, newRow, this);
+            }
+        });
+    });
+
+    // Bind re-analyze buttons already in DOM (from cached results)
+    document.querySelectorAll('.reanalyze-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var id   = this.getAttribute('data-vuln-id');
+            var cves = (this.getAttribute('data-cves') || '').split(',').filter(Boolean);
+            var name = this.getAttribute('data-vuln-name') || '';
+            var row  = document.getElementById('ai-row-' + id);
+            if (row) callChatGPT(id, cves, name, row, null);
+        });
+    });
+
+    function escHtml(t) {
+        return (t || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+</script>
+{% endblock %}

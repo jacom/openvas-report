@@ -1,0 +1,561 @@
+{% load thai_date %}
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: 'Sarabun', sans-serif;
+        font-size: 10pt;
+        color: #333;
+        line-height: 1.5;
+    }
+
+    /* Cover Page */
+    .cover {
+        page-break-after: always;
+        text-align: center;
+        padding-top: 50px;
+    }
+    .cover h1 {
+        font-size: 28pt;
+        color: #1a1a2e;
+        margin-bottom: 10px;
+    }
+    .cover h2 {
+        font-size: 16pt;
+        color: #16213e;
+        font-weight: 400;
+        margin-bottom: 30px;
+    }
+    .cover .meta {
+        font-size: 12pt;
+        color: #666;
+        margin-top: 40px;
+    }
+    .cover .line {
+        width: 200px;
+        height: 4px;
+        background: #dc3545;
+        margin: 20px auto;
+    }
+
+    /* Page headers */
+    h2.section-title {
+        font-size: 16pt;
+        color: #1a1a2e;
+        border-bottom: 3px solid #dc3545;
+        padding-bottom: 5px;
+        margin-bottom: 15px;
+        margin-top: 40px;
+    }
+    h3 {
+        font-size: 12pt;
+        color: #16213e;
+        margin-top: 15px;
+        margin-bottom: 8px;
+    }
+
+    /* Summary boxes */
+    .summary-grid {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+    }
+    .summary-box {
+        text-align: center;
+        padding: 15px 20px;
+        border-radius: 8px;
+        color: #fff;
+        width: 18%;
+    }
+    .summary-box .count { font-size: 24pt; font-weight: 700; }
+    .summary-box .label { font-size: 9pt; text-transform: uppercase; }
+    .bg-critical { background: #dc3545; }
+    .bg-high { background: #fd7e14; }
+    .bg-medium { background: #ffc107; color: #333; }
+    .bg-low { background: #0dcaf0; color: #333; }
+    .bg-info { background: #6c757d; }
+
+    /* Tables */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 15px;
+        font-size: 9pt;
+    }
+    th {
+        background: #1a1a2e;
+        color: #fff;
+        padding: 8px 6px;
+        text-align: left;
+        font-weight: 600;
+    }
+    td {
+        padding: 6px;
+        border-bottom: 1px solid #ddd;
+        vertical-align: top;
+    }
+    tr:nth-child(even) { background: #f8f9fa; }
+
+    /* Severity badges */
+    .sev {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 3px;
+        color: #fff;
+        font-weight: 600;
+        font-size: 8pt;
+    }
+    .sev-critical { background: #dc3545; }
+    .sev-high { background: #fd7e14; }
+    .sev-medium { background: #ffc107; color: #333; }
+    .sev-low { background: #0dcaf0; color: #333; }
+    .sev-info { background: #6c757d; }
+
+    /* Chart */
+    .chart-container {
+        text-align: center;
+        margin: 20px 0;
+    }
+    .chart-container img {
+        max-width: 400px;
+    }
+
+    /* Finding detail */
+    .finding {
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 12px;
+        margin-bottom: 12px;
+        page-break-inside: avoid;
+    }
+    .finding-header {
+        font-weight: 700;
+        font-size: 11pt;
+        margin-bottom: 6px;
+    }
+    .finding-meta {
+        font-size: 9pt;
+        color: #666;
+        margin-bottom: 8px;
+    }
+    .finding p {
+        margin-bottom: 6px;
+    }
+    .finding .label {
+        font-weight: 600;
+        color: #1a1a2e;
+    }
+
+    /* Thai advisory in PDF */
+    .thai-finding {
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 12px;
+        margin-bottom: 14px;
+        page-break-inside: avoid;
+    }
+    .thai-finding-critical {
+        border-left: 5px solid #dc3545;
+        background: #fff5f5;
+    }
+    .thai-finding-high {
+        border-left: 5px solid #fd7e14;
+        background: #fff8f0;
+    }
+    .thai-finding h4 {
+        font-size: 11pt;
+        margin-bottom: 4px;
+        color: #1a1a2e;
+    }
+    .thai-finding .thai-label {
+        font-weight: 600;
+        color: #1a1a2e;
+        font-size: 9pt;
+        margin-bottom: 2px;
+    }
+    .thai-finding .thai-text {
+        font-size: 9pt;
+        margin-bottom: 8px;
+        color: #333;
+    }
+    .thai-finding .thai-remediation {
+        font-size: 9pt;
+        background: rgba(255,255,255,0.8);
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        padding: 8px 10px;
+        white-space: pre-wrap;
+        margin-bottom: 4px;
+    }
+    .thai-urgency {
+        display: inline-block;
+        font-size: 8pt;
+        padding: 2px 8px;
+        border-radius: 3px;
+        margin-left: 6px;
+    }
+    .urgency-critical { background: #dc3545; color: #fff; }
+    .urgency-high { background: #fd7e14; color: #fff; }
+
+    /* Page break */
+    .page-break { page-break-before: always; }
+
+    /* Page header & footer */
+    @page {
+        margin: 2cm 2cm 1.5cm 2cm;
+        @top-center {
+            content: element(page-header);
+        }
+        @bottom-center {
+            content: "Page " counter(page) " of " counter(pages);
+            font-size: 8pt;
+            color: #999;
+        }
+    }
+    @page :first {
+        margin-top: 1cm;
+        @top-center { content: none; }
+    }
+    .running-header {
+        position: running(page-header);
+        font-size: 8pt;
+        color: #666;
+        border-bottom: 1px solid #ddd;
+        padding-bottom: 4px;
+        text-align: center;
+    }
+    .running-header img {
+        height: 20px;
+        vertical-align: middle;
+        margin-right: 6px;
+    }
+
+    /* Cover org info */
+    .cover-logo { max-height: 100px; margin-bottom: 15px; }
+    .cover-org-name { font-size: 14pt; color: #1a1a2e; font-weight: 600; margin-bottom: 5px; }
+    .cover-doc-info { font-size: 10pt; color: #555; margin-top: 30px; }
+    .cover-doc-info p { margin: 3px 0; }
+    .cover-signers { margin-top: 230px; font-size: 10pt; color: #444; }
+    .cover-signers .signer-block { display: inline-block; width: 45%; text-align: center; vertical-align: top; }
+    .cover-signers .signer-line { border-top: 1px solid #333; width: 180px; margin: 40px auto 4px; }
+
+    /* AI Analysis section */
+    .ai-finding {
+        border: 1px solid #e0c060;
+        border-left: 5px solid #ffc107;
+        border-radius: 6px;
+        padding: 12px;
+        margin-bottom: 14px;
+        page-break-inside: avoid;
+        background: #fffdf0;
+    }
+    .ai-finding h4 {
+        font-size: 11pt;
+        margin-bottom: 4px;
+        color: #1a1a2e;
+    }
+    .ai-finding .ai-label {
+        font-weight: 600;
+        color: #7a5c00;
+        font-size: 9pt;
+        margin-bottom: 2px;
+    }
+    .ai-finding .ai-query {
+        font-size: 9pt;
+        color: #555;
+        margin-bottom: 8px;
+        font-style: italic;
+    }
+    .ai-finding .ai-answer {
+        font-size: 9pt;
+        white-space: pre-wrap;
+        background: rgba(255,255,255,0.8);
+        border: 1px solid #e0d080;
+        border-radius: 4px;
+        padding: 8px 10px;
+        color: #333;
+    }
+    .ai-badge {
+        display: inline-block;
+        font-size: 8pt;
+        padding: 2px 8px;
+        border-radius: 3px;
+        background: #ffc107;
+        color: #333;
+        margin-left: 6px;
+        font-weight: 600;
+    }
+</style>
+</head>
+<body>
+
+<!-- RUNNING HEADER (appears on every page except first) -->
+<div class="running-header">
+    {% if org_logo_b64 %}<img src="{{ org_logo_b64 }}" alt="">{% endif %}
+    {% if org.name_th %}{{ org.name_th }}{% endif %}
+    {% if org.name_en %} | {{ org.name_en }}{% endif %}
+</div>
+
+<!-- COVER PAGE -->
+<div class="cover">
+    {% if org_logo_b64 %}
+    <img src="{{ org_logo_b64 }}" alt="Logo" class="cover-logo">
+    {% endif %}
+
+    {% if org.name_th %}
+    <div class="cover-org-name">{{ org.name_th }}</div>
+    {% endif %}
+    {% if org.name_en %}
+    <div style="font-size: 12pt; color: #16213e; margin-bottom: 20px;">{{ org.name_en }}</div>
+    {% endif %}
+
+    <h1>Vulnerability Assessment Report</h1>
+    <h2>รายงานผลการตรวจสอบช่องโหว่</h2>
+    <div class="line"></div>
+    <p style="font-size: 14pt; color: #333; margin-top: 20px;">{{ report.name }}</p>
+
+    <div class="meta">
+        {% if doc_number %}<p>เลขที่เอกสาร: {{ doc_number }}</p>{% endif %}
+        <p>วันที่สแกน: {{ report.scan_date|thaidate:"j F Y" }}</p>
+        <p>วันที่ออกรายงาน: {% thainow "j F Y" %}</p>
+        <p>Total Hosts: {{ report.host_count }} | Total Findings: {{ report.total_vulns }}</p>
+    </div>
+
+    {% if org.preparer_name or org.approver_name %}
+    <div class="cover-signers">
+        {% if org.preparer_name %}
+        <div class="signer-block">
+            <div class="signer-line"></div>
+            <div><strong>{{ org.preparer_name }}</strong></div>
+            <div>{{ org.preparer_title }}</div>
+            <div style="font-size: 9pt; color: #888;">ผู้จัดทำรายงาน</div>
+        </div>
+        {% endif %}
+        {% if org.approver_name %}
+        <div class="signer-block">
+            <div class="signer-line"></div>
+            <div><strong>{{ org.approver_name }}</strong></div>
+            <div>{{ org.approver_title }}</div>
+            <div style="font-size: 9pt; color: #888;">ผู้รับรองรายงาน</div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- EXECUTIVE SUMMARY (Thai) -->
+<h2 class="section-title">บทสรุปผู้บริหาร (Executive Summary)</h2>
+
+<p>จากการตรวจสอบช่องโหว่ของระบบ พบผลการตรวจสอบดังนี้:</p>
+
+<div class="summary-grid">
+    <div class="summary-box bg-critical">
+        <div class="count">{{ report.critical_count }}</div>
+        <div class="label">Critical</div>
+    </div>
+    <div class="summary-box bg-high">
+        <div class="count">{{ report.high_count }}</div>
+        <div class="label">High</div>
+    </div>
+    <div class="summary-box bg-medium">
+        <div class="count">{{ report.medium_count }}</div>
+        <div class="label">Medium</div>
+    </div>
+    <div class="summary-box bg-low">
+        <div class="count">{{ report.low_count }}</div>
+        <div class="label">Low</div>
+    </div>
+    <div class="summary-box bg-info">
+        <div class="count">{{ report.info_count }}</div>
+        <div class="label">Info</div>
+    </div>
+</div>
+
+<p>ทำการสแกนทั้งหมด <strong>{{ report.host_count }}</strong> เครื่อง
+พบช่องโหว่รวม <strong>{{ report.total_vulns }}</strong> รายการ</p>
+
+{% if report.critical_count > 0 %}
+<p style="color: #dc3545; font-weight: 600;">
+    ⚠ พบช่องโหว่ระดับวิกฤต (Critical) จำนวน {{ report.critical_count }} รายการ
+    ควรดำเนินการแก้ไขโดยเร่งด่วน
+</p>
+{% endif %}
+
+{% if report.high_count > 0 %}
+<p style="color: #fd7e14; font-weight: 600;">
+    พบช่องโหว่ระดับสูง (High) จำนวน {{ report.high_count }} รายการ
+    ควรวางแผนแก้ไขภายในระยะเวลาที่เหมาะสม
+</p>
+{% endif %}
+
+<!-- SEVERITY CHART -->
+{% if chart_image %}
+<div class="chart-container">
+    <img src="data:image/png;base64,{{ chart_image }}" alt="Severity Distribution">
+</div>
+{% endif %}
+
+<!-- TOP VULNERABILITIES TABLE -->
+<div class="page-break"></div>
+<h2 class="section-title">Top Critical & High Vulnerabilities</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th>Severity</th>
+            <th>CVSS</th>
+            <th>Vulnerability</th>
+            <th>Affected Hosts</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for vuln in critical_vulns %}
+        <tr>
+            <td><span class="sev sev-critical">Critical</span></td>
+            <td>{{ vuln.cvss_score }}</td>
+            <td>{{ vuln.name }}</td>
+            <td>
+                {% for h in vuln.affected_hosts.all %}
+                {{ h.ip }}:{{ h.port }}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+            </td>
+        </tr>
+        {% endfor %}
+        {% for vuln in high_vulns %}
+        <tr>
+            <td><span class="sev sev-high">High</span></td>
+            <td>{{ vuln.cvss_score }}</td>
+            <td>{{ vuln.name }}</td>
+            <td>
+                {% for h in vuln.affected_hosts.all %}
+                {{ h.ip }}:{{ h.port }}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- THAI ADVISORY: คำแนะนำการแก้ไข (Critical & High) -->
+{% if critical_high_vulns_thai %}
+<div class="page-break"></div>
+<h2 class="section-title">คำแนะนำในการแก้ไขช่องโหว่ (Remediation Advisory)</h2>
+<p>รายละเอียดและคำแนะนำในการแก้ไขสำหรับช่องโหว่ระดับ Critical และ High:</p>
+
+{% for vuln in critical_high_vulns_thai %}
+<div class="thai-finding {% if vuln.severity == 'Critical' %}thai-finding-critical{% else %}thai-finding-high{% endif %}">
+    <h4>
+        <span class="sev sev-{{ vuln.severity|lower }}">{{ vuln.severity }}</span>
+        {{ vuln.name }}
+        <span class="thai-urgency {% if vuln.severity == 'Critical' %}urgency-critical{% else %}urgency-high{% endif %}">{{ vuln.thai.urgency }}</span>
+    </h4>
+    <p class="thai-label">{{ vuln.thai.title }}</p>
+
+    <p class="thai-label">คำอธิบาย:</p>
+    <p class="thai-text">{{ vuln.thai.description }}</p>
+
+    <p class="thai-label">ผลกระทบ:</p>
+    <p class="thai-text">{{ vuln.thai.impact }}</p>
+
+    <p class="thai-label">เครื่องที่ได้รับผลกระทบ:</p>
+    <p class="thai-text">
+        {% for h in vuln.affected_hosts.all %}
+        {{ h.ip }}:{{ h.port }}/{{ h.protocol }}{% if not forloop.last %}, {% endif %}
+        {% endfor %}
+    </p>
+
+    <p class="thai-label">คำแนะนำในการแก้ไข:</p>
+    <div class="thai-remediation">{{ vuln.thai.remediation }}</div>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- DETAILED FINDINGS (English) -->
+<div class="page-break"></div>
+<h2 class="section-title">Detailed Findings</h2>
+
+{% for vuln in vulnerabilities %}
+{% if vuln.severity != "Info" %}
+<div class="finding">
+    <div class="finding-header">
+        <span class="sev sev-{{ vuln.severity|lower }}">{{ vuln.severity }}</span>
+        {{ vuln.name }}
+    </div>
+    <div class="finding-meta">
+        CVSS: {{ vuln.cvss_score }} | OID: {{ vuln.oid }} | Family: {{ vuln.family }}
+        {% if vuln.cve_list %}| CVE: {{ vuln.cve_list|join:", " }}{% endif %}
+    </div>
+
+    {% if vuln.description %}
+    <p><span class="label">Description:</span> {{ vuln.description|truncatechars:500 }}</p>
+    {% endif %}
+
+    <p><span class="label">Affected Hosts:</span>
+        {% for h in vuln.affected_hosts.all %}
+        {{ h.ip }}:{{ h.port }}/{{ h.protocol }}{% if not forloop.last %}, {% endif %}
+        {% endfor %}
+    </p>
+
+    {% if vuln.solution %}
+    <p><span class="label">Remediation:</span> {{ vuln.solution|truncatechars:500 }}</p>
+    {% endif %}
+</div>
+{% endif %}
+{% endfor %}
+
+<!-- AI ANALYSIS SECTION -->
+{% if ai_analyses %}
+<div class="page-break"></div>
+<h2 class="section-title">AI Analysis — คำแนะนำจาก ChatGPT</h2>
+<p>ผลการวิเคราะห์ช่องโหว่โดย ChatGPT AI สำหรับช่องโหว่ที่ถูกส่งไปวิเคราะห์:</p>
+
+{% for analysis in ai_analyses %}
+<div class="ai-finding">
+    <h4>
+        <span class="sev sev-{{ analysis.vulnerability.severity|lower }}">{{ analysis.vulnerability.severity }}</span>
+        {{ analysis.vulnerability.name }}
+        <span class="ai-badge">AI</span>
+    </h4>
+    <div class="finding-meta">
+        CVSS: {{ analysis.vulnerability.cvss_score }}
+        {% if analysis.vulnerability.cve_list %}| CVE: {{ analysis.vulnerability.cve_list|join:", " }}{% endif %}
+        | วิเคราะห์เมื่อ: {{ analysis.updated_at|date:"d/m/Y H:i" }}
+    </div>
+    <p class="ai-label">คำถาม:</p>
+    <p class="ai-query">{{ analysis.query }}</p>
+    <p class="ai-label">คำตอบจาก ChatGPT:</p>
+    <div class="ai-answer">{{ analysis.answer }}</div>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- APPENDIX: HOST LIST -->
+<div class="page-break"></div>
+<h2 class="section-title">Appendix: Host List</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>IP Address</th>
+            <th>Hostname</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for host in hosts %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ host.ip }}</td>
+            <td>{{ host.hostname|default:"-" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+</body>
+</html>

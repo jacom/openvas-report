@@ -1,0 +1,108 @@
+import base64
+from io import BytesIO
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+
+from scanner.models import Vulnerability, AffectedHost, OrganizationProfile, AIAnalysis
+from scanner.thai_advisory import get_thai_advisory
+
+
+def _generate_severity_chart_base64(report):
+    """Generate severity pie chart as base64 PNG for embedding in PDF."""
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+
+    labels = ['Critical', 'High', 'Medium', 'Low', 'Info']
+    sizes = [report.critical_count, report.high_count, report.medium_count,
+             report.low_count, report.info_count]
+    colors = ['#dc3545', '#fd7e14', '#ffc107', '#0dcaf0', '#6c757d']
+
+    # Filter out zero values
+    filtered = [(l, s, c) for l, s, c in zip(labels, sizes, colors) if s > 0]
+    if not filtered:
+        return ''
+    labels, sizes, colors = zip(*filtered)
+
+    fig, ax = plt.subplots(1, 1, figsize=(5, 4))
+    wedges, texts, autotexts = ax.pie(
+        sizes, labels=labels, colors=colors, autopct='%1.0f%%',
+        startangle=90, pctdistance=0.85
+    )
+    for t in autotexts:
+        t.set_fontsize(9)
+    ax.set_title('Severity Distribution', fontsize=12, fontweight='bold')
+
+    buf = BytesIO()
+    fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', transparent=True)
+    plt.close(fig)
+    buf.seek(0)
+    return base64.b64encode(buf.read()).decode('utf-8')
+
+
+def generate_pdf(report):
+    """Generate professional PDF report using WeasyPrint."""
+    vulns = Vulnerability.objects.filter(report=report).prefetch_related('affected_hosts')
+
+    critical_vulns = vulns.filter(severity='Critical')
+    high_vulns = vulns.filter(severity='High')
+    medium_vulns = vulns.filter(severity='Medium')
+
+    # Unique hosts
+    hosts = AffectedHost.objects.filter(
+        vulnerability__report=report
+    ).values('ip', 'hostname').distinct().order_by('ip')
+
+    chart_b64 = _generate_severity_chart_base64(report)
+
+    # Attach Thai advisories to Critical/High vulns
+    critical_high_vulns = list(vulns.filter(severity__in=['Critical', 'High']))
+    for v in critical_high_vulns:
+        v.thai = get_thai_advisory(v.name, v.severity)
+
+    # Collect vulnerabilities that have AI analysis
+    ai_analyses = AIAnalysis.objects.filter(
+        vulnerability__report=report
+    ).select_related('vulnerability').order_by('-vulnerability__cvss_score')
+
+    # Organization profile + logo as base64
+    org = OrganizationProfile.load()
+    org_logo_b64 = ''
+    if org.logo:
+        try:
+            with open(org.logo.path, 'rb') as f:
+                logo_data = f.read()
+            import mimetypes
+            mime = mimetypes.guess_type(org.logo.path)[0] or 'image/png'
+            org_logo_b64 = f'data:{mime};base64,{base64.b64encode(logo_data).decode("utf-8")}'
+        except FileNotFoundError:
+            pass
+
+    # Document number: prefix + Buddhist year + sequential
+    import datetime
+    now = datetime.datetime.now()
+    thai_year = now.year + 543
+    doc_number = f'{org.document_number_prefix}{thai_year}-001'
+
+    context = {
+        'report': report,
+        'vulnerabilities': vulns,
+        'critical_vulns': critical_vulns,
+        'high_vulns': high_vulns,
+        'medium_vulns': medium_vulns,
+        'critical_high_vulns_thai': critical_high_vulns,
+        'hosts': hosts,
+        'chart_image': chart_b64,
+        'org': org,
+        'org_logo_b64': org_logo_b64,
+        'doc_number': doc_number,
+        'ai_analyses': ai_analyses,
+    }
+
+    html_string = render_to_string('reports/pdf_template.html', context)
+    from weasyprint import HTML
+    pdf_file = HTML(string=html_string).write_pdf()
+
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="openvas_report_{report.id}.pdf"'
+    return response

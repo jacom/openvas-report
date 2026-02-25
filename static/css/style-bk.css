@@ -1,0 +1,105 @@
+/* Severity color overrides */
+.bg-orange {
+    background-color: #fd7e14 !important;
+    color: #fff;
+}
+.severity-high {
+    background-color: #fd7e14 !important;
+}
+
+/* Severity badges */
+.severity-badge-critical {
+    background-color: #dc3545 !important;
+    color: #fff;
+}
+.severity-badge-high {
+    background-color: #fd7e14 !important;
+    color: #fff;
+}
+.severity-badge-medium {
+    background-color: #ffc107 !important;
+    color: #212529;
+}
+.severity-badge-low {
+    background-color: #0dcaf0 !important;
+    color: #212529;
+}
+.severity-badge-info {
+    background-color: #6c757d !important;
+    color: #fff;
+}
+
+/* Card hover effect */
+.card {
+    transition: transform 0.15s ease;
+}
+.card:hover {
+    transform: translateY(-2px);
+}
+
+/* Table tweaks */
+.table th {
+    white-space: nowrap;
+}
+
+/* Chart containers */
+canvas {
+    max-height: 350px;
+}
+
+/* Upload Drop Zone */
+.upload-zone {
+    border: 3px dashed #ccc;
+    border-radius: 12px;
+    padding: 50px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: #fafafa;
+}
+.upload-zone:hover,
+.upload-zone.drag-over {
+    border-color: #0d6efd;
+    background: #f0f4ff;
+}
+
+/* Thai Advisory Panels */
+.thai-advisory {
+    padding: 16px 20px;
+    border-left: 5px solid;
+    margin: 0;
+    font-family: 'Sarabun', sans-serif;
+}
+.advisory-critical {
+    background: #fff5f5;
+    border-left-color: #dc3545;
+}
+.advisory-high {
+    background: #fff8f0;
+    border-left-color: #fd7e14;
+}
+.advisory-header {
+    font-size: 1.05em;
+    margin-bottom: 4px;
+}
+.advisory-label {
+    font-weight: 600;
+    color: #1a1a2e;
+    margin-bottom: 2px;
+    font-size: 0.9em;
+}
+.advisory-text {
+    font-size: 0.88em;
+    color: #333;
+    margin-bottom: 8px;
+}
+.advisory-remediation {
+    font-size: 0.85em;
+    background: rgba(255,255,255,0.7);
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 10px 12px;
+    white-space: pre-wrap;
+    font-family: 'Sarabun', sans-serif;
+    margin-bottom: 0;
+}

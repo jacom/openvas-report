@@ -1,0 +1,211 @@
+{% extends "dashboard/base.html" %}
+{% block title %}ข้อมูลหน่วยงาน — OpenVAS Report{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card bg-dark text-light border-secondary">
+            <div class="card-header border-secondary">
+                <h4 class="mb-0"><i class="bi bi-building"></i> ข้อมูลหน่วยงาน (Organization Profile)</h4>
+                <small class="text-muted">ข้อมูลนี้จะแสดงบนหน้าปกและ header ของรายงาน PDF</small>
+            </div>
+            <div class="card-body">
+                {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+                {% endif %}
+
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    <h5 class="text-info mb-3"><i class="bi bi-info-circle"></i> ข้อมูลหน่วยงาน</h5>
+
+                    <div class="mb-3">
+                        <label for="name_th" class="form-label">ชื่อหน่วยงาน (ไทย) <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control bg-dark text-light border-secondary" id="name_th" name="name_th" value="{{ org.name_th }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="name_en" class="form-label">ชื่อหน่วยงาน (อังกฤษ)</label>
+                        <input type="text" class="form-control bg-dark text-light border-secondary" id="name_en" name="name_en" value="{{ org.name_en }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="logo" class="form-label">โลโก้หน่วยงาน</label>
+                        {% if org.logo %}
+                        <div class="mb-2">
+                            <img src="{{ org.logo.url }}" alt="Logo" style="max-height: 80px; background: #fff; padding: 5px; border-radius: 4px;" id="logo-preview">
+                            <div class="form-check mt-1">
+                                <input class="form-check-input" type="checkbox" id="clear_logo" name="clear_logo" value="1">
+                                <label class="form-check-label small" for="clear_logo">ลบโลโก้</label>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="mb-2" id="logo-preview-container" style="display:none;">
+                            <img src="" alt="Preview" style="max-height: 80px; background: #fff; padding: 5px; border-radius: 4px;" id="logo-preview">
+                        </div>
+                        {% endif %}
+                        <input type="file" class="form-control bg-dark text-light border-secondary" id="logo" name="logo" accept="image/*">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="address" class="form-label">ที่อยู่</label>
+                        <textarea class="form-control bg-dark text-light border-secondary" id="address" name="address" rows="3">{{ org.address }}</textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="phone" class="form-label">เบอร์โทร</label>
+                            <input type="text" class="form-control bg-dark text-light border-secondary" id="phone" name="phone" value="{{ org.phone }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">อีเมล</label>
+                            <input type="email" class="form-control bg-dark text-light border-secondary" id="email" name="email" value="{{ org.email }}">
+                        </div>
+                    </div>
+
+                    <hr class="border-secondary my-4">
+                    <h5 class="text-info mb-3"><i class="bi bi-person-badge"></i> ผู้จัดทำ / ผู้บริหาร</h5>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="preparer_name" class="form-label">ชื่อผู้จัดทำรายงาน</label>
+                            <input type="text" class="form-control bg-dark text-light border-secondary" id="preparer_name" name="preparer_name" value="{{ org.preparer_name }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="preparer_title" class="form-label">ตำแหน่งผู้จัดทำ</label>
+                            <input type="text" class="form-control bg-dark text-light border-secondary" id="preparer_title" name="preparer_title" value="{{ org.preparer_title }}">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="approver_name" class="form-label">ชื่อผู้บริหารที่เสนอ</label>
+                            <input type="text" class="form-control bg-dark text-light border-secondary" id="approver_name" name="approver_name" value="{{ org.approver_name }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="approver_title" class="form-label">ตำแหน่งผู้บริหาร</label>
+                            <input type="text" class="form-control bg-dark text-light border-secondary" id="approver_title" name="approver_title" value="{{ org.approver_title }}">
+                        </div>
+                    </div>
+
+                    <hr class="border-secondary my-4">
+                    <h5 class="text-info mb-3"><i class="bi bi-file-earmark-text"></i> เลขที่เอกสาร</h5>
+
+                    <div class="mb-3">
+                        <label for="document_number_prefix" class="form-label">Prefix เลขที่เอกสาร</label>
+                        <input type="text" class="form-control bg-dark text-light border-secondary" id="document_number_prefix" name="document_number_prefix" value="{{ org.document_number_prefix }}">
+                        <div class="form-text">เช่น "VA-RPT-" จะได้เลขที่เอกสาร VA-RPT-2568-001</div>
+                    </div>
+
+                    <hr class="border-secondary my-4">
+                    <h5 class="text-warning mb-3"><i class="bi bi-robot"></i> ChatGPT API Settings</h5>
+                    <p class="text-muted small">ตั้งค่า API Key ของ OpenAI เพื่อใช้งานฟีเจอร์วิเคราะห์ช่องโหว่ด้วย AI</p>
+
+                    <div class="mb-3">
+                        <label for="chatgpt_api_key" class="form-label">API Key
+                            {% if gpt.api_key %}<span class="badge bg-success ms-2"><i class="bi bi-check-circle"></i> ตั้งค่าแล้ว</span>{% else %}<span class="badge bg-danger ms-2"><i class="bi bi-x-circle"></i> ยังไม่ได้ตั้งค่า</span>{% endif %}
+                        </label>
+                        <input type="password" class="form-control bg-dark text-light border-secondary" id="chatgpt_api_key" name="chatgpt_api_key"
+                            placeholder="{% if gpt.api_key %}ใส่ key ใหม่เพื่อเปลี่ยน (ทิ้งว่างเพื่อคงค่าเดิม){% else %}sk-...{% endif %}">
+                        <div class="form-text">API Key จาก <a href="https://platform.openai.com/api-keys" target="_blank" class="text-info">platform.openai.com</a></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">รูปแบบ Prompt</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control bg-dark text-light border-secondary"
+                                id="chatgpt_prompt_prefix" name="chatgpt_prompt_prefix"
+                                value="{{ gpt.prompt_prefix }}"
+                                placeholder="อธิบาย">
+                            <span class="input-group-text bg-secondary text-light border-secondary px-2" style="font-size:0.82em;">CVE / CWE</span>
+                            <input type="text" class="form-control bg-dark text-light border-secondary"
+                                id="chatgpt_prompt_suffix" name="chatgpt_prompt_suffix"
+                                value="{{ gpt.prompt_suffix }}"
+                                placeholder="และวิธีแก้ไขแบบเป็นขั้นตอน">
+                        </div>
+                        <div class="form-text">ตัวอย่าง: <span id="prompt-preview" class="text-info"></span></div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="chatgpt_model" class="form-label">Model</label>
+                            <input type="text" class="form-control bg-dark text-light border-secondary"
+                                id="chatgpt_model" name="chatgpt_model"
+                                value="{{ gpt.model }}"
+                                list="model-suggestions"
+                                placeholder="เลือกหรือพิมพ์ชื่อ model"
+                                autocomplete="off">
+                            <datalist id="model-suggestions">
+                                <option value="gpt-5.2">gpt-5.2</option>
+                                <option value="gpt-4.5">gpt-4.5</option>
+                                <option value="gpt-4.5-mini">gpt-4.5-mini</option>
+                                <option value="gpt-4.1">gpt-4.1</option>
+                                <option value="gpt-4.1-mini">gpt-4.1-mini</option>
+                                <option value="gpt-4.1-nano">gpt-4.1-nano</option>
+                                <option value="gpt-4o">gpt-4o</option>
+                                <option value="gpt-4o-mini">gpt-4o-mini</option>
+                                <option value="o4-mini">o4-mini (reasoning)</option>
+                                <option value="o3">o3 (reasoning)</option>
+                                <option value="o3-mini">o3-mini (reasoning)</option>
+                                <option value="o1">o1 (reasoning)</option>
+                                <option value="gpt-4-turbo">gpt-4-turbo</option>
+                                <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+                            </datalist>
+                            <div class="form-text">เลือกจากรายการหรือพิมพ์ชื่อ model เองได้</div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="chatgpt_max_tokens" class="form-label">Max Tokens</label>
+                            <input type="number" class="form-control bg-dark text-light border-secondary" id="chatgpt_max_tokens" name="chatgpt_max_tokens" value="{{ gpt.max_tokens }}" min="100" max="4000">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="chatgpt_temperature" class="form-label">Temperature</label>
+                            <input type="number" class="form-control bg-dark text-light border-secondary" id="chatgpt_temperature" name="chatgpt_temperature" value="{{ gpt.temperature }}" min="0" max="2" step="0.1">
+                            <div class="form-text">0 = แม่นยำ, 1 = สร้างสรรค์</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg"></i> บันทึก
+                        </button>
+                        <a href="{% url 'dashboard-index' %}" class="btn btn-outline-secondary">ยกเลิก</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Live prompt preview
+function updatePromptPreview() {
+    var prefix = document.getElementById('chatgpt_prompt_prefix').value || 'อธิบาย';
+    var suffix = document.getElementById('chatgpt_prompt_suffix').value || 'และวิธีแก้ไขแบบเป็นขั้นตอน';
+    document.getElementById('prompt-preview').textContent = prefix + ' CVE-2024-6387 ' + suffix;
+}
+document.getElementById('chatgpt_prompt_prefix').addEventListener('input', updatePromptPreview);
+document.getElementById('chatgpt_prompt_suffix').addEventListener('input', updatePromptPreview);
+updatePromptPreview();
+
+document.getElementById('logo').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            let preview = document.getElementById('logo-preview');
+            let container = document.getElementById('logo-preview-container');
+            if (container) container.style.display = 'block';
+            if (preview) preview.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+});
+</script>
+{% endblock %}

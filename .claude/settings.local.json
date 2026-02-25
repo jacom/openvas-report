@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(sudo -u postgres psql:*)",
+      "Bash(psql:*)",
+      "Bash(echo:*)",
+      "Bash(sudo -u jong2 psql:*)",
+      "Bash(python manage.py makemigrations:*)",
+      "Bash(python3 manage.py makemigrations:*)",
+      "Bash(source:*)",
+      "Bash(python manage.py migrate:*)",
+      "Bash(sudo -u jong2 bash -c 'source venv/bin/activate && python manage.py migrate 2>&1')",
+      "Bash(sudo -u jong2 bash -c 'source venv/bin/activate && python -c \"\"\nimport django, os\nos.environ.setdefault\\(\\\\\"\"DJANGO_SETTINGS_MODULE\\\\\"\", \\\\\"\"config.settings\\\\\"\"\\)\ndjango.setup\\(\\)\nfrom scanner.gvm_connector import list_gvm_reports\nreports = list_gvm_reports\\(\\)\nfor r in reports:\n    print\\(f\\\\\"\"ID: {r[\\\\\"\"id\\\\\"\"]}, Task: {r[\\\\\"\"task_name\\\\\"\"]}, Status: {r[\\\\\"\"status\\\\\"\"]}, Hosts: {r[\\\\\"\"host_count\\\\\"\"]}, Results: {r[\\\\\"\"result_count\\\\\"\"]}, Imported: {r[\\\\\"\"already_imported\\\\\"\"]}\\\\\"\"\\)\n\"\" 2>&1')",
+      "Bash(sudo -u jong2 bash -c 'source venv/bin/activate && python -c \"\"\nimport django, os\nos.environ.setdefault\\(\\\\\"\"DJANGO_SETTINGS_MODULE\\\\\"\", \\\\\"\"config.settings\\\\\"\"\\)\ndjango.setup\\(\\)\nfrom django.urls import reverse\nprint\\(reverse\\(\\\\\"\"dashboard-sync-gvm\\\\\"\"\\)\\)\nprint\\(reverse\\(\\\\\"\"api-gvm-reports\\\\\"\"\\)\\)\nprint\\(reverse\\(\\\\\"\"api-gvm-sync\\\\\"\"\\)\\)\n\"\" 2>&1')",
+      "Bash(sudo -u jong2 bash -c 'source venv/bin/activate && python manage.py check 2>&1')",
+      "Bash(python3:*)",
+      "Bash(pip install:*)",
+      "Bash(python:*)",
+      "Bash(/home/jong2/openvas-report/venv/bin/pip install:*)",
+      "Bash(venv/bin/python:*)",
+      "Bash(chmod +x /home/jong2/openvas-report/scripts/update.sh && source venv/bin/activate && python manage.py check 2>&1)",
+      "Bash(git config:*)",
+      "Bash(git init:*)"
+    ]
+  }
+}

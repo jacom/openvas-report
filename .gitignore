@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual environment
+venv/
+env/
+
+# Django
+*.log
+*.pot
+db.sqlite3
+staticfiles/
+media/
+
+# Environment / secrets
+.env
+*.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Claude Code
+.claude/
+
+# Build artifacts
+*.egg-info/
+dist/
+build/
+
+# Temp files
+ai.png
+ai-2.png

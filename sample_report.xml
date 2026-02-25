@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<report id="a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        format_id="a994b278-1f62-11e1-96ac-406186ea4fc5"
+        content_type="text/xml">
+  <name>Sample Network Vulnerability Scan</name>
+  <creation_time>2025-01-15T10:30:00Z</creation_time>
+  <report id="inner-report-id-1234">
+    <scan_start>2025-01-15T10:30:00Z</scan_start>
+    <scan_end>2025-01-15T12:45:00Z</scan_end>
+    <scanner>
+      <version>22.4.1</version>
+    </scanner>
+    <results max="100" start="1">
+
+      <!-- Critical: Remote Code Execution -->
+      <result id="res-001">
+        <host>192.168.1.10<hostname>web-server-01</hostname></host>
+        <port>443/tcp</port>
+        <nvt oid="1.3.6.1.4.1.25623.1.0.100001">
+          <name>Apache Log4j Remote Code Execution (Log4Shell)</name>
+          <family>Web application abuses</family>
+          <cvss_base>10.0</cvss_base>
+          <refs>
+            <ref type="cve" id="CVE-2021-44228"/>
+            <ref type="cve" id="CVE-2021-45046"/>
+          </refs>
+          <solution>Update Apache Log4j to version 2.17.0 or later.</solution>
+        </nvt>
+        <threat>Critical</threat>
+        <description>The remote host is running Apache Log4j version 2.x which is vulnerable to remote code execution via JNDI lookup. An attacker can exploit this by sending a specially crafted request containing a JNDI reference that triggers arbitrary code execution on the server.</description>
+      </result>
+
+      <!-- Critical: SQL Injection -->
+      <result id="res-002">
+        <host>192.168.1.10<hostname>web-server-01</hostname></host>
+        <port>8080/tcp</port>
+        <nvt oid="1.3.6.1.4.1.25623.1.0.100002">
+          <name>SQL Injection in Login Form</name>
+          <family>Web application abuses</family>
+          <cvss_base>9.8</cvss_base>
+          <refs>
+            <ref type="cve" id="CVE-2024-12345"/>
+          </refs>
+          <solution>Use parameterized queries and input validation.</solution>
+        </nvt>
+        <threat>Critical</threat>
+        <description>The login form at /api/login is vulnerable to SQL injection. The username parameter is directly concatenated into SQL queries without sanitization, allowing an attacker to bypass authentication or extract database contents.</description>
+      </result>
+
+      <!-- High: SSL/TLS Vulnerability -->
+      <result id="res-003">
+        <host>192.168.1.20<hostname>mail-server</hostname></host>
+        <port>25/tcp</port>
+        <nvt oid="1.3.6.1.4.1.25623.1.0.100003">
+          <name>SSL/TLS: OpenSSL CCS Injection Vulnerability</name>
+          <family>SSL and TLS</family>
+          <cvss_base>7.4</cvss_base>
+          <refs>
+            <ref type="cve" id="CVE-2014-0224"/>
+          </refs>
+          <solution>Update OpenSSL to version 1.0.1h or later.</solution>
+        </nvt>
+        <threat>High</threat>
+        <description>The remote host is affected by a vulnerability in OpenSSL that allows a man-in-the-middle attacker to use a CCS injection attack to decrypt and modify traffic.</description>
+      </result>
+
+      <!-- High: Outdated SSH -->
+      <result id="res-004">
+        <host>192.168.1.30<hostname>db-server</hostname></host>
+        <port>22/tcp</port>
+        <nvt oid="1.3.6.1.4.1.25623.1.0.100004">
+          <name>OpenSSH Multiple Vulnerabilities</name>
+          <family>General</family>
+          <cvss_base>8.1</cvss_base>
+          <refs>
+            <ref type="cve" id="CVE-2023-38408"/>
+          </refs>
+          <solution>Update OpenSSH to version 9.4 or later.</solution>
+        </nvt>
+        <threat>High</threat>
+        <description>The version of OpenSSH installed on the remote host is prior to 9.4. It is therefore affected by multiple vulnerabilities including PKCS#11 provider code execution.</description>
+      </result>
+
+      <!-- High: WordPress vulnerability -->
+      <result id="res-005">
+        <host>192.168.1.10<hostname>web-server-01</hostname></host>
+        <port>80/tcp</port>
+        <nvt oid="1.3.6.1.4.1.25623.1.0.100005">
+          <name>WordPress Core XSS Vulnerability</name>
+          <family>Web application abuses</family>
+          <cvss_base>7.2</cvss_base>
+          <refs>
+            <ref type="cve" id="CVE-2024-56789"/>
+          </refs>
+          <solution>Update WordPress to the latest version.</solution>
+        </nvt>
+        <threat>High</threat>
+        <description>WordPress version detected on the remote host contains a stored cross-site scripting vulnerability in the comment functionality that could allow attackers to execute arbitrary JavaScript.</description>
+      </result>
+
+      <!-- Medium: Weak SSL Cipher -->
+      <result id="res-006">
+        <host>192.168.1.10<hostname>web-server-01</hostname></host>
+        <port>443/tcp</port>
+        <nvt oid="1.3.6.1.4.1.25623.1.0.100006">
+          <name>SSL/TLS: Server Supports Weak Cipher Suites</name>
+          <family>SSL and TLS</family>
+          <cvss_base>5.3</cvss_base>
+          <solution>Disable weak cipher suites in the SSL/TLS configuration.</solution>
+        </nvt>
+        <threat>Medium</threat>
+        <description>The remote SSL/TLS server supports cipher suites that are considered weak. These include RC4-based and DES-based ciphers that provide insufficient security.</description>
+      </result>
+
+      <!-- Medium: Missing Security Headers -->
+      <result id="res-007">
+        <host>192.168.1.10<hostname>web-server-01</hostname></host>
+        <port>80/tcp</port>
+        <nvt oid="1.3.6.1.4.1.25623.1.0.100007">
+          <name>Missing HTTP Security Headers</name>
+          <family>Web application abuses</family>
+          <cvss_base>4.3</cvss_base>
+          <solution>Add X-Frame-Options, X-Content-Type-Options, Content-Security-Policy, and Strict-Transport-Security headers.</solution>
+        </nvt>
+        <threat>Medium</threat>
+        <description>The remote web server does not send several important HTTP security headers including X-Frame-Options, X-Content-Type-Options, and Content-Security-Policy, leaving users vulnerable to clickjacking and MIME-type confusion attacks.</description>
+      </result>
+
+      <!-- Medium: SNMP Public Community -->
+      <result id="res-008">
+        <host>192.168.1.40<hostname>switch-core-01</hostname></host>
+        <port>161/udp</port>
+        <nvt oid="1.3.6.1.4.1.25623.1.0.100008">
+          <name>SNMP Agent Default Community Name (public)</name>
+          <family>SNMP</family>
+          <cvss_base>5.0</cvss_base>
+          <refs>
+            <ref type="cve" id="CVE-1999-0517"/>
+          </refs>
+          <solution>Change the default SNMP community string and restrict SNMP access to authorized management stations.</solution>
+        </nvt>
+        <threat>Medium</threat>
+        <description>The remote SNMP agent is using the default community string 'public' which allows anyone to read device configuration and network information.</description>
+      </result>
+
+      <!-- Low: SSH Weak Algorithms -->
+      <result id="res-009">
+        <host>192.168.1.30<hostname>db-server</hostname></host>
+        <port>22/tcp</port>
+        <nvt oid="1.3.6.1.4.1.25623.1.0.100009">
+          <name>SSH Weak Key Exchange Algorithms</name>
+          <family>General</family>
+          <cvss_base>2.6</cvss_base>
+          <solution>Disable weak key exchange algorithms such as diffie-hellman-group1-sha1.</solution>
+        </nvt>
+        <threat>Low</threat>
+        <description>The SSH server supports weak key exchange algorithms that could potentially be exploited in targeted attacks. While not immediately critical, these should be disabled as part of security hardening.</description>
+      </result>
+
+      <!-- Low: ICMP Timestamp -->
+      <result id="res-010">
+        <host>192.168.1.20<hostname>mail-server</hostname></host>
+        <port>general/icmp</port>
+        <nvt oid="1.3.6.1.4.1.25623.1.0.100010">
+          <name>ICMP Timestamp Reply Information Disclosure</name>
+          <family>General</family>
+          <cvss_base>2.1</cvss_base>
+          <solution>Filter ICMP timestamp requests at the firewall level.</solution>
+        </nvt>
+        <threat>Low</threat>
+        <description>The remote host responds to ICMP timestamp requests, which could allow an attacker to determine the system time and potentially use this information in time-based attacks.</description>
+      </result>
+
+      <!-- Info: OS Detection -->
+      <result id="res-011">
+        <host>192.168.1.10<hostname>web-server-01</hostname></host>
+        <port>general/tcp</port>
+        <nvt oid="1.3.6.1.4.1.25623.1.0.100011">
+          <name>OS Detection</name>
+          <family>Product detection</family>
+          <cvss_base>0.0</cvss_base>
+          <solution>N/A</solution>
+        </nvt>
+        <threat>Log</threat>
+        <description>Remote OS: Ubuntu Linux 22.04 LTS</description>
+      </result>
+
+      <!-- Info: Open Ports -->
+      <result id="res-012">
+        <host>192.168.1.30<hostname>db-server</hostname></host>
+        <port>5432/tcp</port>
+        <nvt oid="1.3.6.1.4.1.25623.1.0.100012">
+          <name>PostgreSQL Service Detection</name>
+          <family>Product detection</family>
+          <cvss_base>0.0</cvss_base>
+          <solution>N/A</solution>
+        </nvt>
+        <threat>Log</threat>
+        <description>PostgreSQL 15.4 detected on port 5432/tcp.</description>
+      </result>
+
+    </results>
+  </report>
+</report>

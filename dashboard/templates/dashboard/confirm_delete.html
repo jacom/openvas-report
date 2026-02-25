@@ -1,0 +1,30 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Delete Report{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="bi bi-trash"></i> ยืนยันการลบรายงาน</h5>
+            </div>
+            <div class="card-body">
+                <p>คุณต้องการลบรายงานนี้หรือไม่?</p>
+                <ul class="list-unstyled">
+                    <li><strong>ชื่อ:</strong> {{ report.name }}</li>
+                    <li><strong>วันที่สแกน:</strong> {{ report.scan_date|date:"d M Y H:i"|default:"N/A" }}</li>
+                    <li><strong>ช่องโหว่ทั้งหมด:</strong> {{ report.total_vulns }} รายการ</li>
+                </ul>
+                <p class="text-danger"><small><i class="bi bi-exclamation-triangle"></i> การลบจะไม่สามารถกู้คืนได้</small></p>
+                <form method="post">
+                    {% csrf_token %}
+                    <a href="{% url 'dashboard-report' report.id %}" class="btn btn-secondary">ยกเลิก</a>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> ยืนยันลบ
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
