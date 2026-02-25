@@ -315,6 +315,11 @@ def system_version(request):
             release_url = data.get('html_url', '')
             changelog = data.get('body', '')[:500]
             update_available = bool(latest) and latest != current
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                error = f'ยังไม่มี Release บน GitHub — ไปสร้างที่ https://github.com/{github_repo}/releases/new'
+            else:
+                error = f'GitHub API Error {e.code}: {e.reason}'
         except Exception as e:
             error = str(e)
 
