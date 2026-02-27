@@ -101,7 +101,9 @@ def generate_pdf(report):
 
     html_string = render_to_string('reports/pdf_template.html', context)
     from weasyprint import HTML
-    pdf_file = HTML(string=html_string).write_pdf()
+    from django.conf import settings
+    base_url = f'file://{settings.BASE_DIR}/'
+    pdf_file = HTML(string=html_string, base_url=base_url).write_pdf()
 
     response = HttpResponse(pdf_file, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="openvas_report_{report.id}.pdf"'
