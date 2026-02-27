@@ -81,6 +81,24 @@ def parse_gvm_xml(xml_content):
 
     scanner_version = _get_text(report_elem, 'scanner/version')
 
+    # Parse host OS info from <host><detail> sections
+    # Structure: <host><ip>x.x.x.x</ip><detail><name>best_os_txt</name><value>Ubuntu 20.04</value></detail></host>
+    host_os_map = {}
+    for host_elem in report_elem.findall('host'):
+        ip_text = _get_text(host_elem, 'ip')
+        if not ip_text:
+            continue
+        os_name = ''
+        for detail in host_elem.findall('detail'):
+            detail_name = _get_text(detail, 'name')
+            if detail_name == 'best_os_txt':
+                os_name = _get_text(detail, 'value')
+                break
+            if detail_name in ('OS', 'best_os_cpe') and not os_name:
+                os_name = _get_text(detail, 'value')
+        if os_name:
+            host_os_map[ip_text] = os_name
+
     # Parse results
     results_elem = report_elem.find('results')
     if results_elem is None:
@@ -184,6 +202,7 @@ def parse_gvm_xml(xml_content):
             'host': {
                 'ip': host_ip,
                 'hostname': hostname,
+                'os_name': host_os_map.get(host_ip, ''),
                 'port': port,
                 'protocol': protocol,
                 'result_detail': result_detail,

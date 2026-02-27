@@ -63,11 +63,49 @@ def report_detail(request, pk):
         else:
             v.thai = None
 
+    # Build host summary: IP → {hostname, ports, worst_severity, cves}
+    SEVERITY_ORDER = {'Critical': 5, 'High': 4, 'Medium': 3, 'Low': 2, 'Info': 1}
+    host_rows = AffectedHost.objects.filter(
+        vulnerability__report=report
+    ).select_related('vulnerability').values(
+        'ip', 'hostname', 'os_name', 'port', 'vulnerability__severity', 'vulnerability__cve_list'
+    )
+    host_map = {}
+    for h in host_rows:
+        ip = h['ip']
+        if ip not in host_map:
+            host_map[ip] = {
+                'ip': ip,
+                'hostname': h['hostname'] or '',
+                'os_name': h['os_name'] or '',
+                'ports': set(),
+                'worst_severity': 'Info',
+                'cves': set(),
+            }
+        if h['os_name'] and not host_map[ip]['os_name']:
+            host_map[ip]['os_name'] = h['os_name']
+        if h['port']:
+            host_map[ip]['ports'].add(h['port'])
+        sev = h['vulnerability__severity']
+        if SEVERITY_ORDER.get(sev, 0) > SEVERITY_ORDER.get(host_map[ip]['worst_severity'], 0):
+            host_map[ip]['worst_severity'] = sev
+        for cve in (h['vulnerability__cve_list'] or []):
+            host_map[ip]['cves'].add(cve)
+
+    hosts_summary = sorted(
+        host_map.values(),
+        key=lambda x: (-SEVERITY_ORDER.get(x['worst_severity'], 0), x['ip'])
+    )
+    for h in hosts_summary:
+        h['ports'] = sorted(h['ports'])
+        h['cves'] = sorted(h['cves'])
+
     return render(request, 'dashboard/report_detail.html', {
         'report': report,
         'vulnerabilities': vulns,
         'severity_filter': severity_filter,
         'search_query': search_query,
+        'hosts_summary': hosts_summary,
     })
 
 
