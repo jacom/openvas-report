@@ -48,10 +48,51 @@ def generate_pdf(report):
     high_vulns = vulns.filter(severity='High')
     medium_vulns = vulns.filter(severity='Medium')
 
-    # Unique hosts
-    hosts = AffectedHost.objects.filter(
+    # Build host summary: IP → {os_name, ports, worst_severity, cves}
+    SEVERITY_ORDER = {'Critical': 5, 'High': 4, 'Medium': 3, 'Low': 2, 'Info': 1}
+    host_rows = AffectedHost.objects.filter(
         vulnerability__report=report
-    ).values('ip', 'hostname').distinct().order_by('ip')
+    ).select_related('vulnerability').values(
+        'ip', 'os_name', 'port', 'vulnerability__severity', 'vulnerability__cve_list'
+    )
+    host_map = {}
+    for h in host_rows:
+        ip = h['ip']
+        if ip not in host_map:
+            host_map[ip] = {
+                'ip': ip,
+                'os_name': h['os_name'] or '',
+                'ports': set(),
+                'worst_severity': 'Info',
+                'cves': set(),
+            }
+        if h['os_name'] and not host_map[ip]['os_name']:
+            host_map[ip]['os_name'] = h['os_name']
+        if h['port']:
+            host_map[ip]['ports'].add(h['port'])
+        sev = h['vulnerability__severity']
+        if SEVERITY_ORDER.get(sev, 0) > SEVERITY_ORDER.get(host_map[ip]['worst_severity'], 0):
+            host_map[ip]['worst_severity'] = sev
+        for cve in (h['vulnerability__cve_list'] or []):
+            host_map[ip]['cves'].add(cve)
+
+    hosts_summary = sorted(
+        host_map.values(),
+        key=lambda x: (-SEVERITY_ORDER.get(x['worst_severity'], 0), x['ip'])
+    )
+    for h in hosts_summary:
+        h['ports'] = sorted(h['ports'])
+        h['cves'] = sorted(h['cves'])
+
+    import ipaddress
+    _nets = set()
+    for h in hosts_summary:
+        if h.get('ip'):
+            try:
+                _nets.add(ipaddress.ip_interface(f"{h['ip']}/24").network)
+            except ValueError:
+                pass
+    scan_networks = ', '.join(sorted(str(n) for n in _nets))
 
     chart_b64 = _generate_severity_chart_base64(report)
 
@@ -91,7 +132,8 @@ def generate_pdf(report):
         'high_vulns': high_vulns,
         'medium_vulns': medium_vulns,
         'critical_high_vulns_thai': critical_high_vulns,
-        'hosts': hosts,
+        'hosts_summary': hosts_summary,
+        'scan_networks': scan_networks,
         'chart_image': chart_b64,
         'org': org,
         'org_logo_b64': org_logo_b64,

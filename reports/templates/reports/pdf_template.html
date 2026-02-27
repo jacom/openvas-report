@@ -270,7 +270,6 @@
         border-radius: 6px;
         padding: 12px;
         margin-bottom: 14px;
-        page-break-inside: avoid;
         background: #fffdf0;
     }
     .ai-finding h4 {
@@ -337,6 +336,9 @@
     <h2>รายงานผลการตรวจสอบช่องโหว่</h2>
     <div class="line"></div>
     <p style="font-size: 14pt; color: #333; margin-top: 20px;">{{ report.name }}</p>
+    {% if scan_networks %}
+    <p style="font-size: 11pt; color: #555; margin-top: 6px;">Network: {{ scan_networks }}</p>
+    {% endif %}
 
     <div class="meta">
         {% if doc_number %}<p>เลขที่เอกสาร: {{ doc_number }}</p>{% endif %}
@@ -553,24 +555,30 @@
 {% endfor %}
 {% endif %}
 
-<!-- APPENDIX: HOST LIST -->
+<!-- APPENDIX: HOST SUMMARY -->
 <div class="page-break"></div>
-<h2 class="section-title">Appendix: Host List</h2>
+<h2 class="section-title">Appendix: Host Summary</h2>
 
 <table>
     <thead>
         <tr>
             <th>#</th>
             <th>IP Address</th>
-            <th>Hostname</th>
+            <th>OS</th>
+            <th>Open Ports</th>
+            <th>Risk Level</th>
+            <th>CVEs</th>
         </tr>
     </thead>
     <tbody>
-        {% for host in hosts %}
+        {% for host in hosts_summary %}
         <tr>
             <td>{{ forloop.counter }}</td>
-            <td>{{ host.ip }}</td>
-            <td>{{ host.hostname|default:"-" }}</td>
+            <td><strong>{{ host.ip }}</strong></td>
+            <td class="small">{{ host.os_name|default:"-" }}</td>
+            <td class="small">{{ host.ports|join:", "|default:"-" }}</td>
+            <td><span class="sev sev-{{ host.worst_severity|lower }}">{{ host.worst_severity }}</span></td>
+            <td class="small">{{ host.cves|join:", "|default:"-" }}</td>
         </tr>
         {% endfor %}
     </tbody>

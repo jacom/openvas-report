@@ -146,6 +146,18 @@ def fetch_gvm_report(report_id):
                         ref_row['type'], []
                     ).append(ref_row['ref_id'])
 
+        # 5. Fetch OS info per host (human-readable, exclude CPE format)
+        cursor.execute("""
+            SELECT rh.host, rhd.value AS os_name
+            FROM report_hosts rh
+            JOIN report_host_details rhd ON rhd.report_host = rh.id
+            WHERE rh.report = %s
+              AND rhd.name = 'OS'
+              AND rhd.value NOT LIKE 'cpe:/%%'
+            GROUP BY rh.host, rhd.value
+        """, [report_id])
+        host_os_map = {row['host']: row['os_name'] for row in _dictfetchall(cursor)}
+
     # Build output matching parse_gvm_xml format
     hosts_seen = set()
     vulnerabilities = []
@@ -202,6 +214,7 @@ def fetch_gvm_report(report_id):
             'host': {
                 'ip': host_ip,
                 'hostname': r['hostname'] or '',
+                'os_name': host_os_map.get(host_ip, ''),
                 'port': port,
                 'protocol': protocol,
                 'result_detail': r['description'] or '',
