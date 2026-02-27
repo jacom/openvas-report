@@ -166,7 +166,8 @@ def gvm_report_list(request):
 
 @api_view(['POST'])
 def chatgpt_explain_cve(request):
-    """Send CVE(s) to ChatGPT API for vulnerability explanation and remediation steps.
+    """Send vulnerability context to AI API for explanation and remediation.
+    Builds a rich prompt from vulnerability details + affected host service info.
     Saves result to AIAnalysis model if vulnerability_id is provided.
     """
     if not request.user.is_authenticated:
@@ -188,19 +189,15 @@ def chatgpt_explain_cve(request):
 
     prefix = (gpt_settings.prompt_prefix or 'อธิบาย').strip()
     suffix = (gpt_settings.prompt_suffix or 'และวิธีแก้ไขแบบเป็นขั้นตอน').strip()
-    if cves:
-        cve_str = ', '.join(cves)
-        content = f"{prefix} {cve_str} {suffix}"
-    else:
-        content = f"{prefix} {vuln_name} {suffix}"
+
+    # Build enriched prompt when vulnerability_id is available
+    content = _build_prompt(vulnerability_id, cves, vuln_name, prefix, suffix)
 
     try:
         from openai import OpenAI
         client = OpenAI(api_key=gpt_settings.api_key)
 
         model_name = gpt_settings.model.lower()
-        # o-series (o1, o3, o4) and gpt-4.1+, gpt-4.5 use max_completion_tokens
-        # o-series also does not support temperature parameter
         uses_completion_tokens = any(
             model_name.startswith(p) for p in ('o1', 'o3', 'o4', 'gpt-4.1', 'gpt-4.5', 'gpt-5')
         )
@@ -209,13 +206,18 @@ def chatgpt_explain_cve(request):
         create_kwargs = {
             'model': gpt_settings.model,
             'messages': [
-                {"role": "system", "content": "You are a knowledgeable and concise cybersecurity expert."},
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a knowledgeable and concise cybersecurity expert. "
+                        "When provided with scan results, analyze the actual systems and services "
+                        "detected and give specific, actionable remediation steps."
+                    ),
+                },
                 {"role": "user", "content": content},
             ],
         }
         if uses_completion_tokens:
-            # gpt-5.x and o-series use reasoning tokens that count toward max_completion_tokens
-            # require at least 4000 tokens so reasoning doesn't consume the entire budget
             token_budget = max(gpt_settings.max_tokens, 4000)
             create_kwargs['max_completion_tokens'] = token_budget
         else:
@@ -225,9 +227,9 @@ def chatgpt_explain_cve(request):
 
         response = client.chat.completions.create(**create_kwargs)
         answer = response.choices[0].message.content
-        print(f"[AI DEBUG] model={gpt_settings.model} finish_reason={response.choices[0].finish_reason} answer_type={type(answer)} answer_len={len(answer) if answer else 0} answer_preview={repr((answer or '')[:200])}")
+        print(f"[AI DEBUG] model={gpt_settings.model} finish_reason={response.choices[0].finish_reason} "
+              f"answer_len={len(answer) if answer else 0}")
 
-        # Save result to database if vulnerability_id is provided
         if vulnerability_id:
             try:
                 vuln = Vulnerability.objects.get(pk=vulnerability_id)
@@ -244,6 +246,68 @@ def chatgpt_explain_cve(request):
             {'error': f'ChatGPT API Error: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
+
+
+def _build_prompt(vulnerability_id, cves, vuln_name, prefix, suffix):
+    """Build enriched prompt including vulnerability details and affected host service info."""
+    if not vulnerability_id:
+        # Fallback: plain CVE/name prompt
+        target = ', '.join(cves) if cves else vuln_name
+        return f"{prefix} {target} {suffix}"
+
+    try:
+        vuln = Vulnerability.objects.get(pk=vulnerability_id)
+    except Vulnerability.DoesNotExist:
+        target = ', '.join(cves) if cves else vuln_name
+        return f"{prefix} {target} {suffix}"
+
+    # Collect affected host service details
+    hosts = vuln.affected_hosts.all().values('ip', 'hostname', 'os_name', 'port', 'protocol', 'result_detail')
+    host_lines = []
+    for h in hosts:
+        label = f"{h['ip']}"
+        if h['hostname']:
+            label += f" ({h['hostname']})"
+        port_str = f"{h['port']}/{h['protocol']}" if h['port'] else "N/A"
+        os_str = h['os_name'] or 'unknown'
+        detail = (h['result_detail'] or '').strip()
+        if len(detail) > 400:
+            detail = detail[:400] + '...'
+        host_lines.append(
+            f"  - {label}  OS: {os_str}  port: {port_str}\n    service info: {detail or 'N/A'}"
+        )
+
+    cve_str = ', '.join(vuln.cve_list) if vuln.cve_list else 'N/A'
+    description = (vuln.description or '').strip()[:600] or 'N/A'
+    solution = (vuln.solution or '').strip()[:400] or 'N/A'
+
+    sections = [
+        f"=== Vulnerability ===",
+        f"Name   : {vuln.name}",
+        f"CVSS   : {vuln.cvss_score} ({vuln.severity})",
+        f"Family : {vuln.family or 'N/A'}",
+        f"CVEs   : {cve_str}",
+        f"",
+        f"=== Description ===",
+        description,
+        f"",
+        f"=== Affected Systems ===",
+    ]
+    if host_lines:
+        sections += host_lines
+    else:
+        sections.append("  N/A")
+
+    sections += [
+        f"",
+        f"=== Vendor Suggested Solution ===",
+        solution,
+        f"",
+        f"=== Task ===",
+        f"{prefix} {suffix}",
+    ]
+
+    return '\n'.join(sections)
 
 
 @api_view(['POST'])

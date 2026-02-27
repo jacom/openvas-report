@@ -22,6 +22,11 @@ DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ('true', '1', 'yes')
 
 ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '*').split(',')
 
+CSRF_TRUSTED_ORIGINS = [
+    o.strip() for o in os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS', '').split(',')
+    if o.strip()
+]
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -112,7 +117,10 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 50,
 }
 
-AUTHENTICATION_BACKENDS = ['scanner.gvm_auth.GVMBackend']
+AUTHENTICATION_BACKENDS = [
+    'scanner.gvm_auth.GVMBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
 LOGIN_URL = '/dashboard/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 

@@ -89,6 +89,70 @@
     <a href="{% url 'dashboard-delete' report.id %}" class="btn btn-outline-danger float-end"><i class="bi bi-trash"></i> ลบรายงาน</a>
 </div>
 
+<!-- Host Summary Table -->
+{% if hosts_summary %}
+<div class="card shadow-sm mb-4">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-diagram-3 me-1"></i><strong>Host Summary</strong></span>
+        <span class="badge bg-secondary">{{ hosts_summary|length }} hosts</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>IP Address</th>
+                        <th>Hostname</th>
+                        <th>OS</th>
+                        <th>Open Ports</th>
+                        <th>Risk Level</th>
+                        <th>CVEs</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for h in hosts_summary %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'dashboard-host' report.id h.ip %}" class="fw-bold text-decoration-none font-monospace">
+                                {{ h.ip }}
+                            </a>
+                        </td>
+                        <td class="text-muted small">{{ h.hostname|default:"—" }}</td>
+                        <td class="small">
+                            {% if h.os_name %}
+                            <i class="bi bi-pc-display-horizontal text-muted me-1"></i>{{ h.os_name }}
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            {% for p in h.ports %}
+                            <span class="badge bg-light text-dark border me-1 font-monospace">{{ p }}</span>
+                            {% empty %}
+                            <span class="text-muted">—</span>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            <span class="badge severity-badge-{{ h.worst_severity|lower }}">
+                                {{ h.worst_severity }}
+                            </span>
+                        </td>
+                        <td>
+                            {% for cve in h.cves %}
+                            <a href="https://nvd.nist.gov/vuln/detail/{{ cve }}"
+                               target="_blank" rel="noopener noreferrer"
+                               class="badge bg-light text-dark text-decoration-none border me-1 small">{{ cve }}</a>
+                            {% empty %}
+                            <span class="text-muted">—</span>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Filter & Search -->
 <div class="card shadow-sm mb-4">
     <div class="card-header">
