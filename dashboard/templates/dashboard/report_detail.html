@@ -102,7 +102,6 @@
                 <thead class="table-dark">
                     <tr>
                         <th>IP Address</th>
-                        <th>Hostname</th>
                         <th>OS</th>
                         <th>Open Ports</th>
                         <th>Risk Level</th>
@@ -117,7 +116,6 @@
                                 {{ h.ip }}
                             </a>
                         </td>
-                        <td class="text-muted small">{{ h.hostname|default:"—" }}</td>
                         <td class="small">
                             {% if h.os_name %}
                             <i class="bi bi-pc-display-horizontal text-muted me-1"></i>{{ h.os_name }}
