@@ -55,8 +55,18 @@ echo "  Extracted to: $TMPDIR/$EXTRACTED"
 if [ -f "$SRC/apt-requirements.txt" ]; then
     echo ""
     echo "[3/6] Installing apt packages..."
-    apt-get update -qq
-    xargs -a "$SRC/apt-requirements.txt" apt-get install -y -qq
+    if [ "$(id -u)" -eq 0 ]; then
+        APT_CMD=""
+    elif command -v sudo &>/dev/null; then
+        APT_CMD="sudo"
+    else
+        echo "  ⚠ Not root and sudo not available — skipping apt install"
+        APT_CMD="skip"
+    fi
+    if [ "$APT_CMD" != "skip" ]; then
+        $APT_CMD apt-get update -qq
+        xargs -a "$SRC/apt-requirements.txt" $APT_CMD apt-get install -y -qq
+    fi
 else
     echo "[3/6] No apt-requirements.txt — skipping apt install"
 fi
