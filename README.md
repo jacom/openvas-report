@@ -46,7 +46,7 @@
 
 > แนะนำสำหรับ production — ติดตั้ง OpenVAS + openvas-report พร้อมใช้งานในครั้งเดียว
 
-**ดาวน์โหลด ISO** จาก [Releases](https://github.com/jacom/openvas-report/releases) แล้ว boot ติดตั้งตามปกติ
+**ดาวน์โหลด ISO** จาก [https://dload.wanorn.com/files/ubuntu/](https://dload.wanorn.com/files/ubuntu/) แล้ว boot ติดตั้งตามปกติ
 
 หลังติดตั้งเสร็จ เข้าใช้งานที่:
 - **OpenVAS (GSA):** `http://<IP>:9392`
