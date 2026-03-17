@@ -249,35 +249,6 @@ GVM_DB_HOST=localhost
 GITHUB_REPO=jacom/openvas-report
 ```
 
-### Backfill OS data (สำหรับรายงานที่ import ก่อน v1.0.3)
-
-```bash
-# ISO installation
-cd /opt/openvas-report && source venv/bin/activate
-python manage.py shell < /path/to/backfill_os.py
-
-# Docker
-docker compose exec openvas-report python manage.py shell << 'EOF'
-from django.db import connections
-from scanner.models import AffectedHost, ScanReport
-reports = ScanReport.objects.filter(gvm_report_id__isnull=False)
-total = 0
-for report in reports:
-    with connections['gvmd'].cursor() as cursor:
-        cursor.execute('''
-            SELECT rh.host, rhd.value FROM report_hosts rh
-            JOIN report_host_details rhd ON rhd.report_host = rh.id
-            WHERE rh.report = %s AND rhd.name = %s AND rhd.value NOT LIKE %s
-            GROUP BY rh.host, rhd.value
-        ''', [report.gvm_report_id, 'OS', 'cpe:/%'])
-        for ip, os_name in cursor.fetchall():
-            total += AffectedHost.objects.filter(
-                vulnerability__report=report, ip=ip, os_name=''
-            ).update(os_name=os_name)
-print(f'Updated {total} records')
-EOF
-```
-
 ---
 
 ## License
