@@ -82,27 +82,55 @@ rsync -a --delete \
     --exclude='staticfiles/' \
     "$SRC/" "$APP_DIR/"
 
-# ─── 6. pip install ─────────────────────────────────────────────────────────
-echo ""
-echo "[5/6] Installing Python packages..."
-source "$VENV/bin/activate"
-pip install -q -r "$APP_DIR/requirements.txt"
+# ─── detect Docker mode ──────────────────────────────────────────────────────
+DOCKER_COMPOSE_FILE="${DOCKER_COMPOSE_FILE:-}"
+if [ -z "$DOCKER_COMPOSE_FILE" ] && [ -f "$APP_DIR/docker/docker-compose.yml" ]; then
+    # ลอง detect จาก INSTALL_DIR ที่อาจมี greenbone-compose.yml
+    GREENBONE_COMPOSE="$(dirname "$APP_DIR")/greenbone-compose.yml"
+    if [ -f "$GREENBONE_COMPOSE" ] && command -v docker &>/dev/null; then
+        DOCKER_COMPOSE_FILE="$GREENBONE_COMPOSE"
+    fi
+fi
 
-# ─── 7. Django migrate + collectstatic ──────────────────────────────────────
-echo ""
-echo "[6/6] Running database migrations..."
-python "$APP_DIR/manage.py" migrate --noinput
-python "$APP_DIR/manage.py" collectstatic --noinput --clear -v 0
+if [ -n "$DOCKER_COMPOSE_FILE" ]; then
+    # ─── Docker mode ────────────────────────────────────────────────────────
+    ENV_FILE="$(dirname "$APP_DIR")/.env"
+    COMPOSE_ARGS="-f $DOCKER_COMPOSE_FILE -f $APP_DIR/docker/docker-compose.yml"
+    [ -f "$ENV_FILE" ] && COMPOSE_ARGS="$COMPOSE_ARGS --env-file $ENV_FILE"
 
-# ─── 8. Restart service ─────────────────────────────────────────────────────
-echo ""
-echo "[Done] Restarting service..."
-if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
-    systemctl restart "$SERVICE_NAME"
-    echo "  ✓ Service '$SERVICE_NAME' restarted"
+    echo ""
+    echo "[5/6] Rebuilding Docker image..."
+    docker compose $COMPOSE_ARGS build openvas-report
+
+    echo ""
+    echo "[6/6] Running database migrations..."
+    docker compose $COMPOSE_ARGS run --rm openvas-report python manage.py migrate --noinput
+    docker compose $COMPOSE_ARGS run --rm openvas-report python manage.py collectstatic --noinput --clear -v 0
+
+    echo ""
+    echo "[Done] Restarting container..."
+    docker compose $COMPOSE_ARGS up -d openvas-report
+    echo "  ✓ Container 'openvas-report' restarted"
 else
-    echo "  ⚠ Service '$SERVICE_NAME' not found — please restart manually"
-    echo "    (gunicorn, uwsgi, or python manage.py runserver)"
+    # ─── Systemd mode ───────────────────────────────────────────────────────
+    echo ""
+    echo "[5/6] Installing Python packages..."
+    source "$VENV/bin/activate"
+    pip install -q -r "$APP_DIR/requirements.txt"
+
+    echo ""
+    echo "[6/6] Running database migrations..."
+    python "$APP_DIR/manage.py" migrate --noinput
+    python "$APP_DIR/manage.py" collectstatic --noinput --clear -v 0
+
+    echo ""
+    echo "[Done] Restarting service..."
+    if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
+        systemctl restart "$SERVICE_NAME"
+        echo "  ✓ Service '$SERVICE_NAME' restarted"
+    else
+        echo "  ⚠ Service '$SERVICE_NAME' not found — please restart manually"
+    fi
 fi
 
 echo ""
