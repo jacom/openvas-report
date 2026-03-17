@@ -1,0 +1,55 @@
+# openvas-report services — ใช้ร่วมกับ Greenbone Community Edition
+# รัน: docker compose -f /path/to/greenbone/docker-compose.yml -f docker-compose.yml up -d
+
+services:
+  openvas-report:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      DJANGO_DEBUG: "False"
+      DJANGO_ALLOWED_HOSTS: ${SERVER_IP},localhost,127.0.0.1
+      DJANGO_CSRF_TRUSTED_ORIGINS: http://${SERVER_IP}:8600,http://localhost:8600
+      DB_NAME: openvas_report
+      DB_USER: openvas_report
+      DB_PASSWORD: ${REPORT_DB_PASSWORD}
+      DB_HOST: report-db
+      DB_PORT: "5432"
+      GVM_DB_NAME: gvmd
+      GVM_DB_USER: ${GVM_DB_USER:-gvmd}
+      GVM_DB_PASSWORD: ${GVM_DB_PASSWORD}
+      GVM_DB_HOST: pg-gvm
+      GVM_DB_PORT: "5432"
+      GITHUB_REPO: jacom/openvas-report
+    ports:
+      - "8600:8000"
+    depends_on:
+      report-db:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - openvas-report-media:/app/media
+    networks:
+      - default
+
+  report-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: openvas_report
+      POSTGRES_USER: openvas_report
+      POSTGRES_PASSWORD: ${REPORT_DB_PASSWORD}
+    volumes:
+      - report-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U openvas_report"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - default
+
+volumes:
+  openvas-report-media:
+  report-db-data:
